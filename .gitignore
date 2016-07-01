@@ -1,0 +1,4 @@
+*.pyc
+*.swp
+cron.sh
+local.sh

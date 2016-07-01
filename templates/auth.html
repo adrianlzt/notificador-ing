@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  </head>
+  <body>
+    <div id="msg">
+      Cargando token de pushbullet...
+    </div>
+
+    <script>
+$( document ).ready(function() {
+  var token = document.URL.split("#")[1].split("=")[1];
+
+  $.ajax({
+    type: 'GET',
+    url: "save_token?token="+token,
+  })
+  .done(function( msg ) {
+    $('#msg')[0].innerHTML = msg;
+  })
+  .fail(function(jqXHR, textStatus) {
+    $('#msg')[0].innerHTML = "Error registrando el token";
+  });
+
+});
+    </script>
+  </body>
+</html>

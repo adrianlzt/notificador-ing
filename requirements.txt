@@ -1,0 +1,8 @@
+bottle
+requests
+psycopg2
+SQLAlchemy
+bottle_sqlalchemy
+Pillow
+jinja2
+mechanize

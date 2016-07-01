@@ -1,0 +1,8 @@
+{
+  "name": "ING Notificador",
+  "description": "Notifica via pushbullet todos los movimientos de nuestras cuentas y tarjetas",
+  "image": "heroku/python",
+  "repository": "https://git.heroku.com/ing-notificador.git",
+  "keywords": ["python"],
+  "addons": ["heroku-postgresql"]
+}

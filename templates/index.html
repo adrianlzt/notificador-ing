@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Notificador de movimientos de ING Direct</title>
+  </head>
+  <body>
+    {{ url }}
+    {%- if cfg %}
+    Configuracion cargada.
+    {%- else %}
+    Para cargar la configuración pulsa <a href="config">aqui</a>
+    <br>
+    Tras cargar la configuracion, automaticamente comienza el análisis de los movimientos.
+    Se analizan cada 3 minutos aproximadamente.
+    {%- endif %}
+    <br>
+    <br>
+    {%- if cfg_pushbullet %}
+    Pushbullet configurado correctamente.
+    {%- else %}
+    Para autorizar a la app a enviarte pushbullet pincha <a href="{{auth_pushbullet_url}}">aqui</a>.
+      {% if is_dev %}
+    Esto no funciona con dev porque la redirect_uri tiene que tener el dominio que se mostró al cliente.
+      {% endif %}
+    {%- endif %}
+    <br>
+    <br>
+    <br>
+    <br>
+    Numero de movimientos procesados: {{transaction_num}}
+    <br>
+    Ultima ejecucción: {{last_run_local}}
+    <br>
+    <br>
+    Si has reiniciando la app pincha <a href="cron">aqui</a> para que empieze de nuevo a analizar movimientos.
+    <br>
+    <br>
+    <br>
+    <br>
+    {%- if errores_local %}
+    Hay problemas: {{errores_local}}
+    <br>
+    Revisa los <a href="https://dashboard.heroku.com/apps/{{app_name}}/logs">logs<a/>
+    {% else %}
+    Parece que todo funciona correctamente
+    {%- endif %}
+  </body>
+</html>

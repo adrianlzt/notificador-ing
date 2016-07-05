@@ -42,7 +42,7 @@ logger.setLevel(logging.DEBUG)
 
 
 bottle = Bottle()
-engine = create_engine(os.environ["DATABASE_URL"], echo=False)
+engine = create_engine(os.environ["DATABASE_URL"], echo=True)
 plugin = sqlalchemy.Plugin(
     engine, # SQLAlchemy engine created with create_engine function.
     Base.metadata, # SQLAlchemy metadata, required only if create=True.
@@ -54,7 +54,7 @@ plugin = sqlalchemy.Plugin(
 bottle.install(plugin)
 
 # Bottle debug
-debug(False)
+debug(True)
 
 # Global vars
 br = None # mechanize browser

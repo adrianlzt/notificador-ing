@@ -399,15 +399,33 @@ def config_post(db):
 
     if config.get(db):
         logger.info("Actualizada config sin token pushbullet")
-        c = db.query(Config).first()
+        try:
+            c = db.query(Config).first()
+        except Exception as e:
+            msg = "Error obteniendo config de la bbdd"
+            logger.error("%s: %s", msg, e)
+            return msg
+
         c.dni = dni
         c.password = password
         c.fecha_nacimiento = fecha
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            msg = "Error actualizando config en la bbdd"
+            logger.error("%s: %s", msg, e)
+            return msg
     else:
         logger.info("Creada config sin token pushbullet")
+
         c = Config(dni=dni, password=password, fecha=fecha)
-        db.add(c)
+
+        try:
+            db.add(c)
+        except Exception as e:
+            msg = "Error creando config en la bbdd"
+            logger.error("%s: %s", msg, e)
+            return msg
 
     logger.info("Arrancado el cron que analiza los movimientos")
     Timer(0, cron, [db]).start()

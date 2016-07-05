@@ -1,1 +1,49 @@
 Poner auth
+
+
+Gestion al comienzo, parece que falla la conex con postgres
+
+2016-07-05T12:49:10.142465+00:00 app[web.1]: Bottle v0.12.9 server starting up (using WSGIRefServer())...
+2016-07-05T12:49:10.142514+00:00 app[web.1]: Listening on http://0.0.0.0:57655/
+2016-07-05T12:49:10.142515+00:00 app[web.1]: Hit Ctrl-C to quit.
+2016-07-05T12:49:10.142519+00:00 app[web.1]: 
+2016-07-05T12:49:10.556270+00:00 heroku[web.1]: State changed from starting to up
+2016-07-05T12:49:24.071776+00:00 heroku[router]: at=info method=GET path="/" host=cryptic-refuge-47871.herokuapp.com request_id=f584eb1a-ef27-43de-bdcd-463932014f18 fwd="195.235.92.36" dyno=web.1 connect=1ms service=211ms status=200 bytes=1261
+2016-07-05T12:49:24.054389+00:00 app[web.1]: INFO:__main__:isDev
+2016-07-05T12:49:24.054671+00:00 app[web.1]: INFO:__main__:Env web.1
+2016-07-05T12:49:24.047360+00:00 app[web.1]: INFO:__main__:index
+2016-07-05T12:49:24.064395+00:00 app[web.1]: INFO:__main__:Env web.1
+2016-07-05T12:49:24.064334+00:00 app[web.1]: INFO:__main__:isDev
+2016-07-05T12:49:24.064521+00:00 app[web.1]: INFO:__main__:redirect_url: https%3A%2F%2Fcryptic-refuge-47871.herokuapp.com
+2016-07-05T12:49:24.064281+00:00 app[web.1]: INFO:__main__:get_uri
+2016-07-05T12:49:24.073181+00:00 app[web.1]: 10.81.154.203 - - [05/Jul/2016 12:49:24] "GET / HTTP/1.1" 200 1105
+2016-07-05T12:49:24.064604+00:00 app[web.1]: INFO:__main__:render_template
+2016-07-05T12:49:24.262511+00:00 app[web.1]: 10.81.154.203 - - [05/Jul/2016 12:49:24] "GET /favicon.ico HTTP/1.1" 404 763
+2016-07-05T12:49:24.260765+00:00 heroku[router]: at=info method=GET path="/favicon.ico" host=cryptic-refuge-47871.herokuapp.com request_id=f4844efa-ffac-4755-a781-4ae9e6aca1e9 fwd="195.235.92.36" dyno=web.1 connect=4ms service=5ms status=404 bytes=925
+2016-07-05T12:49:37.648583+00:00 heroku[router]: at=info method=GET path="/config" host=cryptic-refuge-47871.herokuapp.com request_id=e07e3056-7aba-4752-91ab-f756e11f1311 fwd="195.235.92.36" dyno=web.1 connect=1ms service=6ms status=200 bytes=766
+2016-07-05T12:49:46.617775+00:00 heroku[router]: at=info method=POST path="/config" host=cryptic-refuge-47871.herokuapp.com request_id=b795681e-cc32-4b5b-b335-54eaf5de65ad fwd="195.235.92.36" dyno=web.1 connect=0ms service=30ms status=500 bytes=942
+2016-07-05T12:49:46.597054+00:00 app[web.1]: INFO:__main__:Arrancado el cron que analiza los movimientos
+2016-07-05T12:49:46.596762+00:00 app[web.1]: INFO:__main__:Creada config sin token pushbullet
+2016-07-05T12:49:46.599662+00:00 app[web.1]: INFO:__main__:cron
+2016-07-05T12:49:46.609733+00:00 app[web.1]: INFO:__main__:br object: <Browser (not visiting a URL)>
+2016-07-05T12:49:46.594289+00:00 app[web.1]: INFO:__main__:config_post
+2016-07-05T12:49:46.618400+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/bottle.py", line 1732, in wrapper
+2016-07-05T12:49:46.610113+00:00 app[web.1]: INFO:__main__:login
+2016-07-05T12:49:46.618388+00:00 app[web.1]: Traceback (most recent call last):
+2016-07-05T12:49:46.618401+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/bottle_sqlalchemy.py", line 157, in wrapper
+2016-07-05T12:49:46.618400+00:00 app[web.1]:     rv = callback(*a, **ka)
+2016-07-05T12:49:46.618401+00:00 app[web.1]:     session.commit()
+2016-07-05T12:49:46.618402+00:00 app[web.1]:     self.transaction.commit()
+2016-07-05T12:49:46.618403+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/sqlalchemy/orm/session.py", line 404, in commit
+2016-07-05T12:49:46.618402+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/sqlalchemy/orm/session.py", line 801, in commit
+2016-07-05T12:49:46.618399+00:00 app[web.1]:     return route.call(**args)
+2016-07-05T12:49:46.618398+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/bottle.py", line 862, in _handle
+2016-07-05T12:49:46.618403+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/sqlalchemy/orm/session.py", line 464, in close
+2016-07-05T12:49:46.618403+00:00 app[web.1]:     self.close()
+2016-07-05T12:49:46.618404+00:00 app[web.1]:     connection.close()
+2016-07-05T12:49:46.618404+00:00 app[web.1]:   File "/app/.heroku/python/lib/python2.7/site-packages/sqlalchemy/engine/base.py", line 834, in close
+2016-07-05T12:49:46.618404+00:00 app[web.1]:     del self.__connection
+2016-07-05T12:49:46.618405+00:00 app[web.1]: AttributeError: _Connection__connection
+2016-07-05T12:49:46.625391+00:00 app[web.1]: INFO:__main__:Login headers: [('Content-Type', 'application/json; charset=utf-8'), ('Accept', 'application/json, text/javascript, */*; q=0.01'), ('User-agent', 'Mozilla/5.0 (Linux; Android 4.2.1; en-us; Nexus 4 Build/JOP40D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166 Mobile Safari/535.19')]
+2016-07-05T12:49:46.619187+00:00 app[web.1]: 10.81.154.203 - - [05/Jul/2016 12:49:46] "POST /config HTTP/1.1" 500 768
+

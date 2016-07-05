@@ -3,7 +3,7 @@ from models import Config
 import logging
 logger = logging.getLogger(__name__)
 
-PUSHBULLET_CLIENT_ID = "MblFyhquxWYlj3uXZvQW2T2ddWILcedU"
+PUSHBULLET_CLIENT_ID = "QQzdERheIQm7VXgnbT6HbyvC6ECQexrw"
 
 def get(db,key=None):
     """

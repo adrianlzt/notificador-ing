@@ -24,6 +24,8 @@ from PIL import Image
 from StringIO import StringIO
 from base64 import b64decode
 from threading import Timer
+from bs4 import BeautifulSoup
+
 import time
 import requests
 import mechanize
@@ -56,7 +58,6 @@ debug(False)
 
 # Global vars
 br = None # mechanize browser
-last_run = None
 errores = None
 CRONTIME = 120
 
@@ -332,8 +333,15 @@ def cron(db):
     """
     logger.info(sys._getframe().f_code.co_name)
 
-    global last_run
-    last_run = datetime.now()
+    # Cambiar por last_update
+    try:
+        c = db.query(Config).first()
+        c.last_update = datetime.now()
+        db.commit()
+    except Exception as e:
+        msg = "Error actualizando last_update"
+        logger.error("%s: %s", msg, e)
+        return msg
 
     global errores
     errores = None
@@ -407,6 +415,40 @@ def config_post(db):
     return "Configuracion definida correctamente"
 
 
+@bottle.route('/kaffeine')
+def kaffeine(db):
+    """
+    Registra app en kaffeine
+    """
+    logger.info(sys._getframe().f_code.co_name)
+
+    app_name = request.environ.get("HTTP_HOST").split(".")[0]
+    hora_dormir_utc = "23:00"
+
+    br = mechanize.Browser()
+    br.set_handle_robots(False)
+
+    try:
+        soup = BeautifulSoup(br.open("http://kaffeine.herokuapp.com/"), "html.parser")
+    except Exception as e:
+        return "Error conectando con kaffeine.herokuapp.com: %s" % e
+
+    csrf_token = soup.find(name="meta",attrs={"name": "csrf-token"}).get("content")
+    req = br.request_class("http://kaffeine.herokuapp.com/register", headers={"X-CSRF-Token": csrf_token})
+    try:
+        logger.info("Data: name=%s&nap=true&bedtime=%s" % (app_name, urllib2.quote(hora_dormir_utc)))
+        res = br.open(req, data="name=%s&nap=true&bedtime=%s" % ("appname", urllib2.quote(hora_dormir_utc)))
+    except Exception as e:
+        return "Error registrando la app en kaffeine.herokuapp.com: %s" % e
+
+    if res.code == 200:
+        return "App registrada correctamente en kaffeine.herokuapp.com"
+    elif res.code == 201:
+        return "La app ya estaba registrada"
+    else:
+        return "Codigo desconocido: %s" % res.code
+
+
 @bottle.route('/auth_complete')
 def auth_complete(db):
     """
@@ -427,6 +469,7 @@ def save_token(db):
     """
     El javascript de auth_complete enviara aqui el token de la url
     """
+    logger.info(sys._getframe().f_code.co_name)
     token = request.params.get("token")
     logger.info("Actualizando token: %s", token)
     try:
@@ -449,9 +492,21 @@ def save_token(db):
 
 @bottle.route('/')
 def index(db):
+    logger.info(sys._getframe().f_code.co_name)
     try:
         cfg = config.get(db) != None
         cfg_pushbullet = config.get(db, "pushbullet_token") != None
+
+        # kaffeine.herokuapp.com hace get a / cada 30', pero para entre la 1:00 y las 7:00
+        # Cuando nos vuelva a hacer get por la mañana, despertamos a cron
+        # Tambien despierta a cron si pedimos / y hace mucho que no se ejecuta
+        last_update = config.get(db, "last_update")
+        if last_update:
+            diff = datetime.now() - last_update
+            if diff > timedelta(minutes=30):
+                logger.info("Reactivando cron, hace mucho que no se ejecuta: %s", diff)
+                Timer(0, cron, [db]).start()
+
         is_dev = isDev()
         transaction_num = db.query(Transaction).count()
         redirect_url = urllib2.quote(get_uri(), safe="")
@@ -462,7 +517,6 @@ def index(db):
         return "Error templating index.html vars"
 
     try:
-        last_run_local = last_run
         errores_local = errores
         app_name = request.environ.get("HTTP_HOST").split(".")[0]
         body = render_template('index.html', **locals())

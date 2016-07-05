@@ -21,19 +21,20 @@
     {%- else %}
     Para autorizar a la app a enviarte pushbullet pincha <a href="{{auth_pushbullet_url}}">aqui</a>.
       {% if is_dev %}
-    Esto no funciona con dev porque la redirect_uri tiene que tener el dominio que se mostró al cliente.
+    Esto no funciona con dev porque se intentará pasar el token a localhost.
       {% endif %}
     {%- endif %}
     <br>
     <br>
+    Para registrar la app en <a href="http://kaffeine.herokuapp.com/">Kaffeine</a> pincha <a href="kaffeine">aqui</a>.
     <br>
     <br>
     Numero de movimientos procesados: {{transaction_num}}
     <br>
-    Ultima ejecucción: {{last_run_local}}
+    Ultima ejecucción: {{last_update}}
     <br>
     <br>
-    Si has reiniciando la app pincha <a href="cron">aqui</a> para que empieze de nuevo a analizar movimientos.
+    Cada vez que se carga esta web, si hace más de 30' que no se ejecuta cron, se vuelve a activar.
     <br>
     <br>
     <br>

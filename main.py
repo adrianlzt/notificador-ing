@@ -10,14 +10,11 @@
 
 """
 from bottle import Bottle, request, static_file, run, debug
-from models import Transaction, Config, Base
 from jinja2 import Template,Environment,FileSystemLoader
-from sqlalchemy import create_engine
-from bottle.ext import sqlalchemy
 
 from chequea_imagenes import parse_pin
 import pushbullet
-import config
+from config import Config
 
 from datetime import date,timedelta,datetime
 from PIL import Image
@@ -41,25 +38,15 @@ logging.basicConfig()
 logger.setLevel(logging.DEBUG)
 
 
+# Bottle
 bottle = Bottle()
-engine = create_engine(os.environ["DATABASE_URL"], echo=True)
-plugin = sqlalchemy.Plugin(
-    engine, # SQLAlchemy engine created with create_engine function.
-    Base.metadata, # SQLAlchemy metadata, required only if create=True.
-    keyword='db', # Keyword used to inject session database in a route (default 'db').
-    create=True, # If it is true, execute `metadata.create_all(engine)` when plugin is applied (default False).
-    commit=True, # If it is true, plugin commit changes after route is executed (default True).
-    use_kwargs=False # If it is true and keyword is not defined, plugin uses **kwargs argument to inject session database (default False).
-)
-bottle.install(plugin)
-
-# Bottle debug
 debug(True)
 
 # Global vars
 br = None # mechanize browser
 errores = None
 CRONTIME = 120
+config = Config()
 
 # Endpoints
 BASE_ENDPOINT      = 'https://ing.ingdirect.es/'
@@ -68,8 +55,11 @@ POST_AUTH_ENDPOINT = BASE_ENDPOINT + 'genoma_api/login/auth/response'
 CLIENT_ENDPOINT    = BASE_ENDPOINT + 'genoma_api/rest/client'
 PRODUCTS_ENDPOINT  = BASE_ENDPOINT + 'genoma_api/rest/products'
 
+ING_NOTIFICADOR = "https://ing-notificator.appspot.com/auth_complete?app="
+
 PUSHBULLET_ENDPOINT = "https://api.pushbullet.com/oauth2/token"
-PUSHBULLET_OAUTH = "https://www.pushbullet.com/authorize?client_id={client_id}&redirect_uri={server_uri}%2Fauth_complete&response_type=token&scope=everything"
+PUSHBULLET_OAUTH = "https://www.pushbullet.com/authorize?client_id={client_id}&redirect_uri={notificator_uri}{app_uri}&response_type=token&scope=everything"
+
 
 # Diccionario de relacion entre productNumber y alias
 accounts_aliases = {}
@@ -102,7 +92,6 @@ def init_browser():
     br.set_handle_robots(False)
     br.addheaders = [('User-agent', WEB_USER_AGENT)]
     #br.set_proxies({"http": "tcp://0.tcp.ngrok.io:13183", "https": "tcp://0.tcp.ngrok.io:13183"})
-    # proxy no soportado por GAE
 
 def add_headers(header):
     br.addheaders = header + br.addheaders
@@ -131,7 +120,7 @@ def fetch_accounts():
 
     return res_json
 
-def fetch_last_transactions(account, db):
+def fetch_last_transactions(account):
     logger.info(sys._getframe().f_code.co_name)
 
     end_date = date.today()
@@ -161,30 +150,21 @@ def fetch_last_transactions(account, db):
     transactions = json.loads(res.read())
 
     for t in transactions.get("elements", []):
-        notify_and_save_transaction(t, db)
+        notify_and_save_transaction(t)
 
-def notify_and_save_transaction(transaction, db):
+def notify_and_save_transaction(transaction):
     logger.info(sys._getframe().f_code.co_name)
     uuid = transaction["uuid"]
 
-    if not db.query(Transaction).filter_by(uuid=uuid).first():
-        pushbullet_notification(transaction, db)
-        t = Transaction(
-                uuid = uuid,
-                alias = get_alias(transaction),
-                descr = transaction.get("description"),
-                balance = transaction.get("balance"),
-                amount = transaction.get("amount"),
-                date = datetime.strptime(transaction.get("effectiveDate"),"%d/%m/%Y")
-                )
-        db.add(t)
+    if not config.existe_movimiento(uuid):
+        config.add_movimiento(uuid)
 
-def pushbullet_notification(transaction, db):
+def pushbullet_notification(transaction):
     logger.info(sys._getframe().f_code.co_name)
 
     body = "%s: %s (%s)" % (transaction.get("description"),transaction.get("amount"),transaction.get("balance"))
     try:
-        pushbullet.send(db, get_alias(transaction), body=body)
+        pushbullet.send(config.get_pushbullet(), get_alias(transaction), body=body)
         logger.info("ING - Movimiento: %s", body)
     except KeyError as e:
         logger.error("No hay alias para la transation: %s", transaction)
@@ -199,18 +179,19 @@ def get_uri():
     else:
         return "https://%s" % request.environ.get("HTTP_HOST")
 
-def login(db):
+def login():
     logger.info(sys._getframe().f_code.co_name)
 
-    if not config.get(db, "dni") or not config.get(db, "fecha_nacimiento") or not config.get(db, "password"):
-        raise Exception("Falta cargar los datos en NDB: <a href='%s/config'>Load</a>" % get_uri())
+    logger.info("dni: %s, fecha: %s, pass: %s" % (config.get_dni(), config.get_fecha(), config.get_pass()))
+    if not config.get_dni() or not config.get_fecha() or not config.get_pass():
+        raise Exception("Falta cargar los datos: <a href='%s/config'>Load</a>" % get_uri())
 
     params = {
       "loginDocument": {
         "documentType": 0,
-        "document": config.get(db, "dni")
+        "document": config.get_dni()
       },
-      "birthday": config.get(db, "fecha_nacimiento"),
+      "birthday": config.get_fecha(),
       "companyDocument": None,
       "device": 'desktop'
     }
@@ -236,7 +217,7 @@ def login(db):
         raise e
     logger.info("Pinpad: %s", pinpad)
 
-    password = config.get(db, "password")
+    password = config.get_pass()
     digits = []
     for i in range(0,3):
         digits.append(int(password[pinData["pinPositions"][i] - 1]))
@@ -322,26 +303,18 @@ def render_template(template_name, **context):
     return jinja_env.get_template(template_name).render(context)
 
 @bottle.get('/cron')
-def run_cron(db):
-    Timer(0, cron, [db]).start()
+def run_cron():
+    Timer(0, cron, []).start()
     return "Proceso arrancado"
 
-def cron(db):
+def cron():
     """
     Proceso principal que gestiona el login, obtener cuentas y parsearlas
     en busca de nuevos movimientos
     """
     logger.info(sys._getframe().f_code.co_name)
 
-    # Cambiar por last_update
-    try:
-        c = db.query(Config).first()
-        c.last_update = datetime.now()
-        db.commit()
-    except Exception as e:
-        msg = "Error actualizando last_update"
-        logger.error("%s: %s", msg, e)
-        return msg
+    config.set_last(datetime.now())
 
     global errores
     errores = None
@@ -350,10 +323,13 @@ def cron(db):
     logger.info("br object: %s", br)
 
     try:
-        login_output = login(db)
+        login_output = login()
     except Exception as e:
         errores = "Error con el login"
         logger.error(e)
+        logger.info("Cron temporizado dentro de %s seg", CRONTIME)
+        Timer(CRONTIME, cron, []).start()
+        return
 
     try:
         accounts = fetch_accounts()
@@ -367,16 +343,16 @@ def cron(db):
             logger.info("Obteniendo movimientos de %s", account["name"])
             # Tras varias peticiones de movimientos consecutivas, el servidor
             # empieza a meter delays de 30" en las respuestas
-            fetch_last_transactions(account, db)
+            fetch_last_transactions(account)
         except Exception as e:
             errores = "Error analizando movimientos"
             logger.error(e)
 
     logger.info("Cron temporizado dentro de %s seg", CRONTIME)
-    Timer(CRONTIME, cron, [db]).start()
+    Timer(CRONTIME, cron, []).start()
 
 @bottle.get('/config')
-def config_get(db):
+def config_get():
     """
     Nos muestra un formulario para meter los datos
     """
@@ -386,62 +362,35 @@ def config_get(db):
     return body
 
 @bottle.post('/config')
-def config_post(db):
+def config_post():
     """
     Recibe el formulario rellenado por el usuario
     Tras almacenar los datos, comienza el analisis de movimientos
     """
     logger.info(sys._getframe().f_code.co_name)
 
-    dni = request.forms.get("dni")
-    password = request.forms.get("password")
-    fecha = request.forms.get("fecha")
+    config.set_dni(request.forms.get("dni"))
+    config.set_pass(request.forms.get("password"))
+    config.set_fecha(request.forms.get("fecha"))
 
-    if config.get(db):
-        logger.info("Actualizada config sin token pushbullet")
-        try:
-            c = db.query(Config).first()
-        except Exception as e:
-            msg = "Error obteniendo config de la bbdd"
-            logger.error("%s: %s", msg, e)
-            return msg
-
-        c.dni = dni
-        c.password = password
-        c.fecha_nacimiento = fecha
-        try:
-            db.commit()
-        except Exception as e:
-            msg = "Error actualizando config en la bbdd"
-            logger.error("%s: %s", msg, e)
-            return msg
-    else:
-        logger.info("Creada config sin token pushbullet")
-
-        c = Config(dni=dni, password=password, fecha=fecha)
-
-        try:
-            db.add(c)
-        except Exception as e:
-            msg = "Error creando config en la bbdd"
-            logger.error("%s: %s", msg, e)
-            return msg
+    logger.info("Actualizada config sin token pushbullet")
 
     logger.info("Arrancado el cron que analiza los movimientos")
-    Timer(0, cron, [db]).start()
+    Timer(0, cron, []).start()
 
-    return "Configuracion definida correctamente"
+    body = render_template('config_complete.html', **locals())
+    return body
 
 
 @bottle.route('/kaffeine')
-def kaffeine(db):
+def kaffeine():
     """
-    Registra app en kaffeine
+    Registra app en kaffeine sin bedtime
     """
     logger.info(sys._getframe().f_code.co_name)
 
     app_name = request.environ.get("HTTP_HOST").split(".")[0]
-    hora_dormir_utc = "23:00"
+    hora_dormir_utc = "00:00"
 
     br = mechanize.Browser()
     br.set_handle_robots(False)
@@ -454,7 +403,7 @@ def kaffeine(db):
     csrf_token = soup.find(name="meta",attrs={"name": "csrf-token"}).get("content")
     req = br.request_class("http://kaffeine.herokuapp.com/register", headers={"X-CSRF-Token": csrf_token})
     try:
-        logger.info("Data: name=%s&nap=true&bedtime=%s" % (app_name, urllib2.quote(hora_dormir_utc)))
+        logger.info("Data: name=%s&nap=false&bedtime=%s" % (app_name, urllib2.quote(hora_dormir_utc)))
         res = br.open(req, data="name=%s&nap=true&bedtime=%s" % ("appname", urllib2.quote(hora_dormir_utc)))
     except Exception as e:
         return "Error registrando la app en kaffeine.herokuapp.com: %s" % e
@@ -468,7 +417,7 @@ def kaffeine(db):
 
 
 @bottle.route('/auth_complete')
-def auth_complete(db):
+def auth_complete():
     """
     Pagina donde cargaremos un javascript que leera el token y lo registrara
     """
@@ -483,25 +432,17 @@ def auth_complete(db):
     return body
 
 @bottle.route('/save_token')
-def save_token(db):
+def save_token():
     """
     El javascript de auth_complete enviara aqui el token de la url
     """
     logger.info(sys._getframe().f_code.co_name)
-    token = request.params.get("token")
+    config.set_pushbullet(request.params.get("token"))
     logger.info("Actualizando token: %s", token)
-    try:
-        c = db.query(Config).first()
-        c.pushbullet_token = token
-        db.commit()
-    except Exception as e:
-        msg = "Error actualizando token"
-        logger.error("%s: %s", msg, e)
-        return msg
 
     try:
         logger.info("Probando envio de pushbullet")
-        pushbullet.send(db, "Registro correcto", body="Prueba de envio")
+        pushbullet.send(config.get_pushbullet(), "Registro correcto", body="Prueba de envio")
     except Exception as e:
         logger.error("Error enviando pushbullet: %s", e)
         raise e
@@ -509,27 +450,26 @@ def save_token(db):
     return 'Token registrando correctamente. Ahora deberias recibir un pushbullet de prueba'
 
 @bottle.route('/')
-def index(db):
+def index():
     logger.info(sys._getframe().f_code.co_name)
     try:
-        cfg = config.get(db) != None
-        cfg_pushbullet = config.get(db, "pushbullet_token") != None
+        cfg = config.get_dni() != None
+        cfg_pushbullet = config.get_pushbullet() != None
 
-        # kaffeine.herokuapp.com hace get a / cada 30', pero para entre la 1:00 y las 7:00
-        # Cuando nos vuelva a hacer get por la mañana, despertamos a cron
-        # Tambien despierta a cron si pedimos / y hace mucho que no se ejecuta
-        last_update = config.get(db, "last_update")
+        # Si hace mucho tiempo que no se ejecuta, vuelve a programar el cron
+        last_update = config.get_last()
         if last_update:
             diff = datetime.now() - last_update
-            if diff > timedelta(minutes=30):
+            if diff > timedelta(minutes=10):
                 logger.info("Reactivando cron, hace mucho que no se ejecuta: %s", diff)
-                Timer(0, cron, [db]).start()
+                Timer(0, cron, []).start()
 
         is_dev = isDev()
-        transaction_num = db.query(Transaction).count()
-        redirect_url = urllib2.quote(get_uri(), safe="")
-        logger.info("redirect_url: %s", redirect_url)
-        auth_pushbullet_url = PUSHBULLET_OAUTH.format(client_id=config.PUSHBULLET_CLIENT_ID, server_uri=redirect_url)
+        transaction_num = config.num_movimientos()
+        auth_pushbullet_url = PUSHBULLET_OAUTH.format(
+                client_id=config.get_pushbullet_client_id(),
+                notificator_uri=urllib2.quote(ING_NOTIFICADOR, safe=""),
+                app_uri=urllib2.quote(get_uri(), safe=""))
     except Exception as e:
         logger.error("Error generando variables para el template index.html: %s", e)
         return "Error templating index.html vars"

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  </head>
+  <body>
+    Configuración cargada correctamente.
+    <br>
+    Redirigiendo a la página índice
+
+    <script>
+function redirect() {
+  window.location.href = "/";
+}
+
+$( document ).ready(function() {
+  setInterval(redirect, 2000);
+});
+    </script>
+  </body>
+</html>

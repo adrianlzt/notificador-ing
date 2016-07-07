@@ -5,5 +5,5 @@
   "repository": "https://github.com/adrianlzt/notificador-ing",
   "logo": "http://www.cajerosybancos.es/imgs/entidades_financieras_medium/ingdirect.png",
   "keywords": ["python","ing-direct","bank","scrapper","pushbullet"],
-  "addons": ["heroku-postgresql"]
+  "addons": ["heroku-redis"]
 }

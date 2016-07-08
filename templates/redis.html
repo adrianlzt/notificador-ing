@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  </head>
+  <body>
+    Servidor Redis aún no disponible.
+    <br>
+    Redirigiendo a la página índice en 5 segundos.
+
+    <script>
+function redirect() {
+  window.location.href = "/";
+}
+
+$( document ).ready(function() {
+  setInterval(redirect, 5000);
+});
+    </script>
+  </body>
+</html>

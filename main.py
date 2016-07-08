@@ -470,6 +470,10 @@ def index():
                 client_id=config.get_pushbullet_client_id(),
                 notificator_uri=urllib2.quote(ING_NOTIFICADOR, safe=""),
                 app_uri=urllib2.quote(get_uri(), safe=""))
+    except redis.ConnectionError as e:
+        logger.error("Error conectando con el servidor redis: %s", e)
+        body = render_template('redis.html', **locals())
+        return body
     except Exception as e:
         logger.error("Error generando variables para el template index.html: %s", e)
         return "Error templating index.html vars"

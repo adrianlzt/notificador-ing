@@ -31,6 +31,7 @@ import urllib
 import urllib2
 import sys
 import os
+import redis
 
 import logging
 logger = logging.getLogger(__name__)

@@ -5,17 +5,17 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
   </head>
   <body>
-    Configuración cargada correctamente.
+    {{msg}
     <br>
-    Redirigiendo a la web para el registro en <a href="http://kaffeine.herokuapp.com/">Kaffeine</a>
+    Redirigiendo a la página índice
 
     <script>
 function redirect() {
-  window.location.href = "kaffeine";
+  window.location.href = "/";
 }
 
 $( document ).ready(function() {
-  setInterval(redirect, 2000);
+  setInterval(redirect, 4000);
 });
     </script>
   </body>

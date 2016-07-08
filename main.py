@@ -412,11 +412,14 @@ def kaffeine():
         return "Error registrando la app en kaffeine.herokuapp.com: %s" % e
 
     if res.code == 200:
-        return "App registrada correctamente en kaffeine.herokuapp.com"
+        msg = "App registrada correctamente en kaffeine.herokuapp.com"
     elif res.code == 201:
-        return "La app ya estaba registrada"
+        msg = "La app ya estaba registrada"
     else:
-        return "Codigo desconocido: %s" % res.code
+        msg = "Codigo desconocido: %s" % res.code
+
+    body = render_template('kaffeine.html', **locals())
+    return body
 
 
 @bottle.route('/auth_complete')

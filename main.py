@@ -405,8 +405,9 @@ def kaffeine():
     csrf_token = soup.find(name="meta",attrs={"name": "csrf-token"}).get("content")
     req = br.request_class("http://kaffeine.herokuapp.com/register", headers={"X-CSRF-Token": csrf_token})
     try:
-        logger.info("Data: name=%s&nap=false&bedtime=%s" % (app_name, urllib2.quote(hora_dormir_utc)))
-        res = br.open(req, data="name=%s&nap=true&bedtime=%s" % ("appname", urllib2.quote(hora_dormir_utc)))
+        data = "name=%s&nap=true&bedtime=%s" % (app_name, urllib2.quote(hora_dormir_utc)
+        logger.info("Data: %s" % data)
+        res = br.open(req, data=data)
     except Exception as e:
         return "Error registrando la app en kaffeine.herokuapp.com: %s" % e
 

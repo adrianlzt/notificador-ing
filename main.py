@@ -158,6 +158,7 @@ def notify_and_save_transaction(transaction):
 
     if not config.existe_movimiento(uuid):
         config.add_movimiento(uuid)
+        pushbullet_notification(transaction)
 
 def pushbullet_notification(transaction):
     logger.info(sys._getframe().f_code.co_name)
@@ -437,7 +438,8 @@ def save_token():
     El javascript de auth_complete enviara aqui el token de la url
     """
     logger.info(sys._getframe().f_code.co_name)
-    config.set_pushbullet(request.params.get("token"))
+    token = request.params.get("token")
+    config.set_pushbullet(token)
     logger.info("Actualizando token: %s", token)
 
     try:

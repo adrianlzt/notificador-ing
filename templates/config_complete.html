@@ -7,7 +7,9 @@
   <body>
     Configuración cargada correctamente.
     <br>
-    Redirigiendo a la web para el registro en <a href="http://kaffeine.herokuapp.com/">Kaffeine</a>
+    Se están obteniendo los movimientos actuales.
+    <br>
+    Cuando termine, se prodecerá automaticamente al registro en <a href="http://kaffeine.herokuapp.com/">Kaffeine</a>. Esto permitirá que la app no se ponga en estado "idle" (lo que evitaría el chequeo de nuevos movimientos).
 
     <script>
 function redirect() {
@@ -15,7 +17,7 @@ function redirect() {
 }
 
 $( document ).ready(function() {
-  setInterval(redirect, 2000);
+  setInterval(redirect, 15000);
 });
     </script>
   </body>
